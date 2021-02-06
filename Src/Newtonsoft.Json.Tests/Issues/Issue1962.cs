@@ -23,10 +23,8 @@
 // OTHER DEALINGS IN THE SOFTWARE.
 #endregion
 
-#if !(NET20 || NET35 || NET40)
-using System.Collections;
-using System.Collections.Generic;
-using System.Collections.Immutable;
+using System.Linq;
+using Newtonsoft.Json.Linq;
 #if DNXCORE50
 using Xunit;
 using Test = Xunit.FactAttribute;
@@ -38,28 +36,51 @@ using NUnit.Framework;
 namespace Newtonsoft.Json.Tests.Issues
 {
     [TestFixture]
-    public class Issue1984
+    public class Issue1962
     {
         [Test]
-        public void Test_NullValue()
+        public void Test_Default()
         {
-            var actual = JsonConvert.DeserializeObject<A>("{ Values: null}");
-            Assert.IsNotNull(actual);
-            Assert.IsNull(actual.Values);
+            string json = @"// comment
+[ 1, 2, 42 ]";
+            JToken token = JToken.Parse(json);
+
+            Assert.AreEqual(JTokenType.Comment, token.Type);
+            Assert.AreEqual(" comment", ((JValue)token).Value);
         }
 
         [Test]
-        public void Test_WithoutValue()
+        public void Test_LoadComments()
         {
-            var actual = JsonConvert.DeserializeObject<A>("{ }");
-            Assert.IsNotNull(actual);
-            Assert.IsNull(actual.Values);
+            string json = @"// comment
+[ 1, 2, 42 ]";
+            JToken token = JToken.Parse(json, new JsonLoadSettings
+            {
+                CommentHandling = CommentHandling.Load
+            });
+
+            Assert.AreEqual(JTokenType.Comment, token.Type);
+            Assert.AreEqual(" comment", ((JValue)token).Value);
+
+            int[] obj = token.ToObject<int[]>();
+            Assert.IsNull(obj);
         }
-        
-        public class A
+
+        [Test]
+        public void Test_IgnoreComments()
         {
-            public ImmutableArray<string>? Values { get; set; }
+            string json = @"// comment
+[ 1, 2, 42 ]";
+            JToken token = JToken.Parse(json, new JsonLoadSettings
+            {
+                CommentHandling = CommentHandling.Ignore
+            });
+
+            Assert.AreEqual(JTokenType.Array, token.Type);
+            Assert.AreEqual(3, token.Count());
+            Assert.AreEqual(1, (int)token[0]);
+            Assert.AreEqual(2, (int)token[1]);
+            Assert.AreEqual(42, (int)token[2]);
         }
     }
 }
-#endif

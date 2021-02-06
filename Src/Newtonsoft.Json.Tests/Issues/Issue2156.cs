@@ -23,10 +23,8 @@
 // OTHER DEALINGS IN THE SOFTWARE.
 #endregion
 
-#if !(NET20 || NET35 || NET40)
-using System.Collections;
-using System.Collections.Generic;
-using System.Collections.Immutable;
+using Newtonsoft.Json.Linq;
+using System.Linq;
 #if DNXCORE50
 using Xunit;
 using Test = Xunit.FactAttribute;
@@ -38,28 +36,30 @@ using NUnit.Framework;
 namespace Newtonsoft.Json.Tests.Issues
 {
     [TestFixture]
-    public class Issue1984
+    public class Issue2156
     {
         [Test]
-        public void Test_NullValue()
+        public void Test()
         {
-            var actual = JsonConvert.DeserializeObject<A>("{ Values: null}");
-            Assert.IsNotNull(actual);
-            Assert.IsNull(actual.Values);
-        }
+            string json = @"
+            {
+                ""root"": {
+                    ""a"": {
+                        ""name"": ""John"",
+                        ""b"": {
+                            ""name"": ""Sarah""
+                        }
+                    }
+                }
+            }";
 
-        [Test]
-        public void Test_WithoutValue()
-        {
-            var actual = JsonConvert.DeserializeObject<A>("{ }");
-            Assert.IsNotNull(actual);
-            Assert.IsNull(actual.Values);
-        }
-        
-        public class A
-        {
-            public ImmutableArray<string>? Values { get; set; }
+            JToken t = JToken.Parse(json);
+
+            int count1 = t.SelectTokens("$..a.name").Count(); // result: 1, expected: 1
+            int count2 = t.SelectTokens("$..['a']['name']").Count(); // result: 2, expected: 1
+
+            Assert.AreEqual(1, count1);
+            Assert.AreEqual(1, count2);
         }
     }
 }
-#endif

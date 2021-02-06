@@ -23,10 +23,11 @@
 // OTHER DEALINGS IN THE SOFTWARE.
 #endregion
 
-#if !(NET20 || NET35 || NET40)
-using System.Collections;
+using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
+using System.Text;
+using Newtonsoft.Json.Converters;
+using Newtonsoft.Json.Serialization;
 #if DNXCORE50
 using Xunit;
 using Test = Xunit.FactAttribute;
@@ -35,31 +36,51 @@ using Assert = Newtonsoft.Json.Tests.XUnitAssert;
 using NUnit.Framework;
 #endif
 
-namespace Newtonsoft.Json.Tests.Issues
+namespace Newtonsoft.Json.Tests.Documentation.Samples.Serializer
 {
     [TestFixture]
-    public class Issue1984
+    public class NamingStrategyKebabCase : TestFixtureBase
     {
-        [Test]
-        public void Test_NullValue()
+        #region Types
+        public class User
         {
-            var actual = JsonConvert.DeserializeObject<A>("{ Values: null}");
-            Assert.IsNotNull(actual);
-            Assert.IsNull(actual.Values);
+            public string UserName { get; set; }
+            public bool Enabled { get; set; }
         }
+        #endregion
 
         [Test]
-        public void Test_WithoutValue()
+        public void Example()
         {
-            var actual = JsonConvert.DeserializeObject<A>("{ }");
-            Assert.IsNotNull(actual);
-            Assert.IsNull(actual.Values);
-        }
-        
-        public class A
-        {
-            public ImmutableArray<string>? Values { get; set; }
+            #region Usage
+            User user1 = new User
+            {
+                UserName = "jamesn",
+                Enabled = true
+            };
+
+            DefaultContractResolver contractResolver = new DefaultContractResolver
+            {
+                NamingStrategy = new KebabCaseNamingStrategy()
+            };
+
+            string json = JsonConvert.SerializeObject(user1, new JsonSerializerSettings
+            {
+                ContractResolver = contractResolver,
+                Formatting = Formatting.Indented
+            });
+
+            Console.WriteLine(json);
+            // {
+            //   "user-name": "jamesn",
+            //   "enabled": true
+            // }
+            #endregion
+
+            StringAssert.AreEqual(@"{
+  ""user-name"": ""jamesn"",
+  ""enabled"": true
+}", json);
         }
     }
 }
-#endif

@@ -23,10 +23,13 @@
 // OTHER DEALINGS IN THE SOFTWARE.
 #endregion
 
-#if !(NET20 || NET35 || NET40)
+#if !NET20
+using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Collections.Immutable;
+using System.Runtime.Serialization;
+using Newtonsoft.Json.Converters;
+using Newtonsoft.Json.Serialization;
 #if DNXCORE50
 using Xunit;
 using Test = Xunit.FactAttribute;
@@ -38,27 +41,35 @@ using NUnit.Framework;
 namespace Newtonsoft.Json.Tests.Issues
 {
     [TestFixture]
-    public class Issue1984
+    public class Issue2082
     {
         [Test]
-        public void Test_NullValue()
+        public void Test()
         {
-            var actual = JsonConvert.DeserializeObject<A>("{ Values: null}");
-            Assert.IsNotNull(actual);
-            Assert.IsNull(actual.Values);
-        }
+            CamelCaseNamingStrategy namingStrategy = new CamelCaseNamingStrategy(processDictionaryKeys: true, overrideSpecifiedNames: false);
 
-        [Test]
-        public void Test_WithoutValue()
-        {
-            var actual = JsonConvert.DeserializeObject<A>("{ }");
-            Assert.IsNotNull(actual);
-            Assert.IsNull(actual.Values);
+            TestClass c = new TestClass { Value = TestEnum.UpperCaseName };
+            string json = JsonConvert.SerializeObject(c, new JsonSerializerSettings
+            {
+                ContractResolver = new DefaultContractResolver
+                {
+                    NamingStrategy = namingStrategy
+                },
+                Converters = new[] { new StringEnumConverter { NamingStrategy = namingStrategy } }
+            });
+
+            Assert.AreEqual(@"{""value"":""UPPER_CASE_NAME""}", json);
         }
         
-        public class A
+        public class TestClass
         {
-            public ImmutableArray<string>? Values { get; set; }
+            public TestEnum Value { get; set; }
+        }
+
+        public enum TestEnum
+        {
+            [EnumMember(Value = "UPPER_CASE_NAME")]
+            UpperCaseName
         }
     }
 }

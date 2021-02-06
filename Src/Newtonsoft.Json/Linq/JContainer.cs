@@ -117,6 +117,8 @@ namespace Newtonsoft.Json.Linq
                 AddInternal(i, child, false);
                 i++;
             }
+
+            CopyAnnotations(this, other);
         }
 
         internal void CheckReentrancy()
@@ -273,7 +275,7 @@ namespace Newtonsoft.Json.Linq
         /// <returns>
         /// A <see cref="IEnumerable{T}"/> containing the child values of this <see cref="JToken"/>, in document order.
         /// </returns>
-        public override IEnumerable<T> Values<T>()
+        public override IEnumerable<T?> Values<T>() where T : default
         {
             return ChildrenTokens.Convert<JToken, T>();
         }
@@ -316,7 +318,7 @@ namespace Newtonsoft.Json.Linq
             }
         }
 
-        internal bool IsMultiContent([NotNull]object? content)
+        internal bool IsMultiContent([NotNullWhen(true)]object? content)
         {
             return (content is IEnumerable && !(content is string) && !(content is JToken) && !(content is byte[]));
         }

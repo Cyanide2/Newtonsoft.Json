@@ -23,10 +23,12 @@
 // OTHER DEALINGS IN THE SOFTWARE.
 #endregion
 
-#if !(NET20 || NET35 || NET40)
-using System.Collections;
-using System.Collections.Generic;
-using System.Collections.Immutable;
+using System;
+using System.IO;
+#if !(NET20 || NET35 || NET40 || PORTABLE40)
+using System.Threading.Tasks;
+#endif
+using Newtonsoft.Json.Linq;
 #if DNXCORE50
 using Xunit;
 using Test = Xunit.FactAttribute;
@@ -38,28 +40,44 @@ using NUnit.Framework;
 namespace Newtonsoft.Json.Tests.Issues
 {
     [TestFixture]
-    public class Issue1984
+    public class Issue2165
     {
         [Test]
-        public void Test_NullValue()
+        public void Test_Deserializer()
         {
-            var actual = JsonConvert.DeserializeObject<A>("{ Values: null}");
-            Assert.IsNotNull(actual);
-            Assert.IsNull(actual.Values);
+            ExceptionAssert.Throws<JsonWriterException>(
+                () => JsonConvert.DeserializeObject<JObject>("{"),
+                "Unexpected end when reading token. Path ''.");
         }
 
         [Test]
-        public void Test_WithoutValue()
+        public void Test()
         {
-            var actual = JsonConvert.DeserializeObject<A>("{ }");
-            Assert.IsNotNull(actual);
-            Assert.IsNull(actual.Values);
+            StringWriter w = new StringWriter();
+            JsonTextWriter writer = new JsonTextWriter(w);
+
+            var jsonReader = new JsonTextReader(new StringReader("{"));
+            jsonReader.Read();
+
+            ExceptionAssert.Throws<JsonWriterException>(
+                () => writer.WriteToken(jsonReader),
+                "Unexpected end when reading token. Path ''.");
         }
-        
-        public class A
+
+#if !(NET20 || NET35 || NET40 || PORTABLE40)
+        [Test]
+        public async Task TestAsync()
         {
-            public ImmutableArray<string>? Values { get; set; }
+            StringWriter w = new StringWriter();
+            JsonTextWriter writer = new JsonTextWriter(w);
+
+            var jsonReader = new JsonTextReader(new StringReader("{"));
+            await jsonReader.ReadAsync();
+
+            await ExceptionAssert.ThrowsAsync<JsonWriterException>(
+                () => writer.WriteTokenAsync(jsonReader),
+                "Unexpected end when reading token. Path ''.");
         }
+#endif
     }
 }
-#endif
